@@ -3,12 +3,17 @@
 /* jshint node: true */
 /* globals URL, Headers, Request, fetch, addEventListener */
 
+/*
+ * Caveat: This will obviously be blocked on sites that have Cloudflare
+ * firewall enabled - they're not dumb.
+ */
+
 async function eventHandler(event) {
   const { request } = event;
   const targetHeaders = new Headers(request.headers);
 
-  const targetHost = targetHeaders.get("target-host");
-  targetHeaders.delete("target-host");
+  const targetHost = targetHeaders.get("faasproxy-target-host");
+  targetHeaders.delete("faasproxy-target-host");
 
   const targetUrl = new URL(request.url);
   targetUrl.host = targetHost;
