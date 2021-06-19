@@ -1,7 +1,9 @@
-import urllib3
+import cloudscraper
 from flask import Response
 
-http = urllib3.PoolManager()
+http = cloudscraper.create_scraper(
+    browser={"browser": "firefox", "platform": "windows", "mobile": False}
+)
 
 
 def faasproxy(request):
@@ -12,10 +14,12 @@ def faasproxy(request):
             key.startswith("X-Appengine")
             or key
             in (
+                "Content-Length",
                 "Accept-Encoding",
                 "Forwarded",
                 "Function-Execution-Id",
                 "Traceparent",
+                "Transfer-Encoding",
                 "X-Amzn-Trace-Id",
                 "X-Cloud-Trace-Context",
             )
@@ -25,13 +29,16 @@ def faasproxy(request):
     target_headers.pop("Host")
     target_path = "/".join(request.full_path.split("/")[1:])
     target_url = f"https://{target_host}/{target_path}"
-    target_resp = http.request(request.method, target_url, headers=target_headers)
+
+    send = getattr(http, request.method.lower())
+    target_resp = send(target_url, headers=target_headers)
 
     resp_headers = dict(target_resp.headers)
     resp_headers.pop("Content-Encoding", None)
+    resp_headers.pop("Transfer-Encoding", None)
 
     return Response(
-        response=target_resp.data,
-        status=target_resp.status,
+        response=target_resp.content,
+        status=target_resp.status_code,
         headers=resp_headers,
     )
