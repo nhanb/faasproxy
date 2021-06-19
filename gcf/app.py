@@ -1,4 +1,3 @@
-import urllib3
 from flask import Flask, request
 
 from main import faasproxy
@@ -7,8 +6,6 @@ from main import faasproxy
 Local server for quick testing. Run it with:
     flask run --reload
 """
-
-http = urllib3.PoolManager()
 
 app = Flask(__name__)
 

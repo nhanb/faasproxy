@@ -12,6 +12,7 @@ def faasproxy(request):
             key.startswith("X-Appengine")
             or key
             in (
+                "Accept-Encoding",
                 "Forwarded",
                 "Function-Execution-Id",
                 "Traceparent",
@@ -25,8 +26,12 @@ def faasproxy(request):
     target_path = "/".join(request.full_path.split("/")[1:])
     target_url = f"https://{target_host}/{target_path}"
     target_resp = http.request(request.method, target_url, headers=target_headers)
+
+    resp_headers = dict(target_resp.headers)
+    resp_headers.pop("Content-Encoding", None)
+
     return Response(
         response=target_resp.data,
         status=target_resp.status,
-        headers=dict(target_resp.headers),
+        headers=resp_headers,
     )
