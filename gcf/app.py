@@ -4,6 +4,7 @@ from main import faasproxy
 
 """
 Local server for quick testing. Run it with:
+    export FAASPROXY_KEY=`cat key.txt`
     flask run --reload
 """
 
