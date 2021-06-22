@@ -1,3 +1,19 @@
+"""
+Dumb (bespoke "protocol" & grossly inefficient) http(s) proxy on Google Cloud Functions.
+It also attempts to solve CloudFlare's javascript challenge where necessary.
+
+To use, simply send request to proxy just as you would to the target, but provide some
+extra http headers:
+
+- X-Proxy-Key: For authentication.
+- X-Proxy-Target-Host: So the proxy knows what hostname to proxy to.
+- X-Proxy-Target-Scheme: Optional. Defaults to https.
+
+To deploy:
+
+    $ printf 'my-secret-proxy-key' > key.txt
+    $ make
+"""
 import os
 
 import cloudscraper
@@ -11,7 +27,7 @@ FAASPROXY_KEY = os.environ["FAASPROXY_KEY"]
 
 
 def faasproxy(request):
-    auth_key = request.headers.get("Faasproxy-Key")
+    auth_key = request.headers.get("X-Proxy-Key")
     if auth_key != FAASPROXY_KEY:
         return "Go away", 403
 
@@ -33,11 +49,13 @@ def faasproxy(request):
             )
         )
     }
-    target_host = target_headers.pop("Faasproxy-Target-Host")
-    target_headers.pop("Faasproxy-Key")
+    target_headers.pop("X-Proxy-Key")
     target_headers.pop("Host")
+
+    target_host = target_headers.pop("X-Proxy-Target-Host")
+    target_scheme = target_headers.pop("X-Proxy-Target-Scheme", "https")
     target_path = "/".join(request.full_path.split("/")[1:])
-    target_url = f"https://{target_host}/{target_path}"
+    target_url = f"{target_scheme}://{target_host}/{target_path}"
 
     send = getattr(http, request.method.lower())
     target_resp = send(target_url, headers=target_headers)
